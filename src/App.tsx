@@ -127,6 +127,15 @@ export function App() {
     return () => { BgMusic.stop(); };
   }, [currentGame, musicOn]);
 
+  // Stop background music when the user 'exits' the app (tab hidden/page hidden).
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.hidden) BgMusic.stop();
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   const goToGame = (id: GameMode) => {
     Sounds.unlock(); // unlock audio context on first interaction
     Sounds.click();
