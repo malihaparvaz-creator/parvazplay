@@ -128,13 +128,21 @@ export function App() {
   }, [currentGame, musicOn]);
 
   // Stop background music when the user 'exits' the app (tab hidden/page hidden).
+  // Also resume music when they return, using current state.
   useEffect(() => {
     function handleVisibility() {
-      if (document.hidden) BgMusic.stop();
+      if (document.hidden) {
+        BgMusic.stop();
+      } else {
+        if (musicOn) {
+          const track = currentGame === 'menu' ? 'chill' : GAME_TRACK[currentGame];
+          if (track) BgMusic.play(track as BgTrack);
+        }
+      }
     }
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
+  }, [currentGame, musicOn]);
 
   const goToGame = (id: GameMode) => {
     Sounds.unlock(); // unlock audio context on first interaction
