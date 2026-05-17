@@ -30,14 +30,13 @@ import { TicTacToe } from './components/TicTacToe';
 import { SlidingPuzzle } from './components/SlidingPuzzle';
 import { LightsOut } from './components/LightsOut';
 import { MemoryGrid } from './components/MemoryGrid';
-import { MazeRunner } from './components/MazeRunner';
 
 type GameMode =
   | 'menu' | 'tetris' | 'memory' | 'reaction' | 'whack' | 'trivia' | 'racing' | 'shooting' | 'archery'
   | 'puzzle' | 'typing' | 'color' | 'math' | 'flappy' | 'bricks' | '2048' | 'simon'
   | 'catch' | 'tower' | 'mines' | 'scramble' | 'rhythm'
   | 'connect4' | 'ttt' | 'sliding' | 'lights' | 'mgrid'
-  | 'doodle' | 'gobblers' | 'pong' | 'asteroid' | 'maze';
+  | 'doodle' | 'gobblers' | 'pong' | 'asteroid';
 
 // Which background music track each game uses
 const GAME_TRACK: Partial<Record<GameMode, BgTrack>> = {
@@ -71,7 +70,7 @@ const GAME_TRACK: Partial<Record<GameMode, BgTrack>> = {
   sliding:  'chill',
   lights:   'chill',
   mgrid:    'puzzle',
-  maze:     'chill',
+  
 };
 
 const GAMES: Array<{ id: Exclude<GameMode, 'menu'>; name: string; emoji: string; description: string; color: string; shadowColor: string; difficulty: string; detail: string }> = [
@@ -105,7 +104,7 @@ const GAMES: Array<{ id: Exclude<GameMode, 'menu'>; name: string; emoji: string;
   { id: 'sliding',  name: '15 Puzzle',        emoji: '🔢', description: 'Slide numbered tiles into order.',               color: 'from-cyan-500 to-blue-600',     shadowColor: 'shadow-cyan-500/30',    difficulty: 'Hard',   detail: 'Auto-saves' },
   { id: 'lights',   name: 'Lights Out',       emoji: '💡', description: 'Turn off every light — clicks toggle neighbors.', color: 'from-yellow-500 to-amber-600',  shadowColor: 'shadow-yellow-500/30',  difficulty: 'Medium', detail: 'Levels' },
   { id: 'mgrid',    name: 'Memory Grid',      emoji: '🧠', description: 'Memorize lit tiles, then tap them back.',        color: 'from-purple-500 to-pink-600',   shadowColor: 'shadow-purple-500/30',  difficulty: 'Medium', detail: 'Pattern recall' },
-  { id: 'maze',     name: 'Maze Runner',      emoji: '🗺️', description: 'Collect coins and find the exit.',               color: 'from-lime-500 to-green-600',    shadowColor: 'shadow-lime-500/30',    difficulty: 'Medium', detail: '3 levels' },
+  
 ];
 
 export function App() {
@@ -115,14 +114,18 @@ export function App() {
 
   // Start/stop background music on game change
   useEffect(() => {
-    if (currentGame === 'menu') {
-      BgMusic.stop();
+    if (musicOn) {
+      if (currentGame === 'menu') {
+        BgMusic.play('chill');
+      } else {
+        const track = GAME_TRACK[currentGame];
+        if (track) BgMusic.play(track);
+      }
     } else {
-      const track = GAME_TRACK[currentGame];
-      if (track && musicOn) BgMusic.play(track);
+      BgMusic.stop();
     }
-    return () => { if (currentGame !== 'menu') BgMusic.stop(); };
-  }, [currentGame]);
+    return () => { BgMusic.stop(); };
+  }, [currentGame, musicOn]);
 
   const goToGame = (id: GameMode) => {
     Sounds.unlock(); // unlock audio context on first interaction
@@ -131,7 +134,6 @@ export function App() {
   };
 
   const goToMenu = () => {
-    BgMusic.stop();
     Sounds.click();
     setCurrentGame('menu');
   };
@@ -142,8 +144,8 @@ export function App() {
       setMusicOn(false);
     } else {
       setMusicOn(true);
-      const track = GAME_TRACK[currentGame];
-      if (track && currentGame !== 'menu') BgMusic.play(track);
+      const track = currentGame === 'menu' ? 'chill' : GAME_TRACK[currentGame];
+      if (track) BgMusic.play(track as BgTrack);
     }
   };
 
@@ -179,7 +181,6 @@ export function App() {
       case 'sliding':  return <SlidingPuzzle />;
       case 'lights':   return <LightsOut />;
       case 'mgrid':    return <MemoryGrid />;
-      case 'maze':     return <MazeRunner />;
       default: return null;
     }
   };
@@ -190,6 +191,15 @@ export function App() {
         className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white"
         onClick={Sounds.unlock}
       >
+        <div className="fixed top-4 right-4 z-30">
+          <button
+            onClick={toggleMusic}
+            title={musicOn ? 'Mute music' : 'Unmute music'}
+            className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-lg backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
+          >
+            {musicOn ? '🔊' : '🔇'}
+          </button>
+        </div>
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute left-10 top-20 h-72 w-72 animate-pulse rounded-full bg-purple-500/10 blur-3xl" />
           <div className="absolute bottom-20 right-10 h-96 w-96 animate-pulse rounded-full bg-blue-500/10 blur-3xl" style={{ animationDelay: '1s' }} />
@@ -236,19 +246,21 @@ export function App() {
         <div className="absolute bottom-20 right-10 h-96 w-96 animate-pulse rounded-full bg-blue-500/10 blur-3xl" style={{ animationDelay: '1s' }} />
       </div>
       <div className="relative z-10 mx-auto max-w-3xl px-4 py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <button
-            onClick={goToMenu}
-            className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
-          >
-            <span className="text-lg">←</span><span>Back to Menu</span>
-          </button>
+        <div className="fixed top-4 right-4 z-30">
           <button
             onClick={toggleMusic}
             title={musicOn ? 'Mute music' : 'Unmute music'}
             className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-lg backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
           >
             {musicOn ? '🔊' : '🔇'}
+          </button>
+        </div>
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            onClick={goToMenu}
+            className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
+          >
+            <span className="text-lg">←</span><span>Back to Menu</span>
           </button>
         </div>
         <div className="mb-6 text-center">
